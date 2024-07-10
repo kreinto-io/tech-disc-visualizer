@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disc Golf Release Angle Visualizer</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+        #controls { position: fixed; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="hyzer">Hyzer Angle: </label>
+        <input type="number" id="hyzer" value="15.2">
+        <label for="nose">Nose Angle: </label>
+        <input type="number" id="nose" value="7.2">
+        <label for="launch">Launch Angle: </label>
+        <input type="number" id="launch" value="9.4">
+        <button onclick="updateDisc()">Update Disc</button>
+        <button onclick="toggleCrosshair()">Toggle Crosshair</button>
+    </div>
+    <div id="container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let scene, camera, renderer, disc, controls, crosshair;
+        let crosshairVisible = true;
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xbfd1e5);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 10, 7.5);
+            scene.add(light);
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            const geometry = new THREE.CylinderGeometry(5, 5, 0.5, 32);
+            const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+            disc = new THREE.Mesh(geometry, material);
+            scene.add(disc);
+
+            const outlineGeometry = new THREE.CylinderGeometry(5.1, 5.1, 0.55, 32);
+            const outlineMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+            const outlineMesh = new THREE.Mesh(outlineGeometry, outlineMaterial);
+            disc.add(outlineMesh);
+
+            const planeGeometry = new THREE.PlaneGeometry(1000, 1000);
+            const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = Math.PI / 2;
+            plane.position.y = -5;
+            scene.add(plane);
+
+            const crosshairGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-10, 0, 0),
+                new THREE.Vector3(10, 0, 0),
+                new THREE.Vector3(0, -10, 0),
+                new THREE.Vector3(0, 10, 0)
+            ]);
+            const crosshairMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+            crosshair = new THREE.LineSegments(crosshairGeometry, crosshairMaterial);
+            crosshair.position.set(0, 0, 0);
+            scene.add(crosshair);
+
+            camera.position.z = 20;
+            camera.position.y = 10;
+            camera.lookAt(0, 0, 0);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableRotate = true;
+            controls.enableZoom = false;
+            controls.maxPolarAngle = Math.PI / 2; // Restrict vertical movement
+            controls.minPolarAngle = Math.PI / 2; // Restrict vertical movement
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function updateDisc() {
+            const hyzerAngle = parseFloat(document.getElementById('hyzer').value);
+            const noseAngle = parseFloat(document.getElementById('nose').value);
+            const launchAngle = parseFloat(document.getElementById('launch').value);
+
+            disc.rotation.x = THREE.Math.degToRad(-launchAngle);
+            disc.rotation.y = THREE.Math.degToRad(hyzerAngle);
+            disc.rotation.z = THREE.Math.degToRad(noseAngle);
+        }
+
+        function toggleCrosshair() {
+            crosshairVisible = !crosshairVisible;
+            crosshair.visible = crosshairVisible;
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+    </script>
+</body>
+</html>
